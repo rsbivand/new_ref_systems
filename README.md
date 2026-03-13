@@ -6,3 +6,7 @@ I am considering submitting a talk/lightning talk/poster on the imminent confusi
 The changes are going to affect all geospatial software relying on position whether we like it ot not, even if the changes are single-digit metres or less. So affecting anything linking to GDAL/PROJ, and packages using terra, sf, gdalraster, vapour, gdalcubes.
 
 I would like to ask for help in submitting (by tomorrow evening 14 March) and for some input to a "task force" to try to prepare for oncoming changes. Please tell me not to worry and drop this concern, or consider helping to see how to move forward, including talking about this at useR!.
+
+This readme is based on https://stat.ethz.ch/pipermail/r-sig-geo/2026-March/029601.html and https://fosstodon.org/@rsbivand/116221325701116875.
+
+
