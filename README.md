@@ -10,3 +10,6 @@ I would like to ask for help in submitting (by tomorrow evening 14 March) and fo
 This readme is based on https://stat.ethz.ch/pipermail/r-sig-geo/2026-March/029601.html and https://fosstodon.org/@rsbivand/116221325701116875.
 
 
+Abstract submitted 14:52 CET 2026-03-14.
+
+
