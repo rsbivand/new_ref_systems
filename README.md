@@ -12,4 +12,5 @@ This readme is based on https://stat.ethz.ch/pipermail/r-sig-geo/2026-March/0296
 
 Abstract submitted 14:52 CET 2026-03-14; accepted 17:49 CET 2026-03-28.
 
+See also https://lists.osgeo.org/pipermail/proj/2026-April/012082.html and https://lists.osgeo.org/pipermail/gdal-dev/2026-April/061491.html.
 
