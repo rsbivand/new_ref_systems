@@ -237,7 +237,7 @@ diff_tab <- setdiff(attr(dbs[[3]], "tlist"), attr(dbs[[2]], "tlist"))
 
 ## Recent `proj.db` version information {.allowframebreaks}
 
-Treating `proj.db` as an SQLite database, we can extract information from the `metadata` table. Version v12.029 is provided in PROJ 9.7.1 (December 2025) and 9.8.1 (April 2026, [https://proj.org/en/stable/news.html](https://proj.org/en/stable/news.html)), v12.049 was tried in 9.8.0 (March 2026) but caused trouble - more on this below, and the development version of PROJ (commit df810ea, 14 May) due for release in September 2026 provides currently v12.056:
+Treating `proj.db` as an SQLite database, we can extract information from the `metadata` table. Version v12.029 is provided in PROJ 9.7.1 (December 2025) and 9.8.1 (April 2026, [https://proj.org/en/stable/news.html](https://proj.org/en/stable/news.html)), v12.049 was tried in 9.8.0 (March 2026) but caused trouble - more on this below, and the development version of PROJ (commit d258a97, 19 June) due for release in September 2026 provides currently v12.057:
 
 ```{r}
 #| label: tbl_sql2a
@@ -313,7 +313,7 @@ cat(setdiff(epsg_4937_9.7.1, epsg_4937_9.8.0), sep="\n")
 
 ```
 
-Between 9.8.0 and forthcoming 9.9.0, changes are more cosmetic:
+Between v12.049 and v12.057, changes are more cosmetic:
 
 ```{r}
 #| label: etrs89diff1
@@ -321,9 +321,9 @@ Between 9.8.0 and forthcoming 9.9.0, changes are more cosmetic:
 #| size: "scriptsize"
 #| collapse: TRUE
 epsg_4937_9.9.0 <- readLines("epsg_4937_9.9.0.txt")
-cat("in v12.049, not in v12.056\n")
+cat("in v12.049, not in v12.057\n")
 cat(setdiff(epsg_4937_9.8.0, epsg_4937_9.9.0), sep="\n")
-cat("in v12.056, not in v12.049\n")
+cat("in v12.057, not in v12.049\n")
 cat(setdiff(epsg_4937_9.9.0, epsg_4937_9.8.0), sep="\n")
 ```
 
@@ -444,7 +444,7 @@ The first found pipeline for 9.8.0 used an out-dated grid not available from the
 
 Using the classical Meuse bank soil pollution data set in the `sp` package [@R-sp], with coordinates measured in EPSG:28992 and tranforming to EPSG:4258 as in Jochem Lesparre's issue, we can track the average distances between transformations made with different versions of PROJ and the associated versions of the EPSG database. 
 
-We have 9.7.1 (under Windows, so a slightly different C math library) and 9.8.0 and 9.9.0 df810ea (Fedora 44). 9.8.0 is about 12 cm off on average by comparison with 9.7.1 at the data location in the far south of the Netherlands. 9.9.0 has the same difference from 9.8.0. 
+We have 9.7.1 (under Windows, so a slightly different C math library) and 9.8.0 and 9.9.0 d258a97 (Fedora 44). 9.8.0 is about 12 cm off on average by comparison with 9.7.1 at the data location in the far south of the Netherlands. 9.9.0 has the same difference from 9.8.0. 
 
 ```{r}
 #| label: meuse_diffs2
@@ -606,6 +606,41 @@ The NATRF2022 2D CRS definition is (for now from Javier Jimenez Shaw's test infr
 cat(NATRF2022_2D$wkt, "\n")
 ```
 
+## Testing modernized NSRS NATRF2022 in `proj.db` {.allowframebreaks}
+
+EPSG v12.057 and earlier (including v12.029) include initial versions of "so-called" EPSG:10968 - here from v12.029: 
+
+```{r}
+#| label: natrf1a
+#| echo: FALSE
+#| size: "scriptsize"
+#| collapse: TRUE
+load("v12.029_6318_10968.rda")
+cat(v12.029_10968$wkt, "\n")
+```
+
+from v12.049, which cautiously remarks - This data has been added to the EPSG Dataset prior to official adoption to facilitate software testing and evaluation. In the unlikely event that definitions change, the record will be deprecated and replaced with a new EPSG code:
+
+```{r}
+#| label: natrf1b
+#| echo: FALSE
+#| size: "scriptsize"
+#| collapse: TRUE
+load("v12.049_6318_10968.rda")
+cat(v12.049_10968$wkt, "\n")
+```
+
+and v12.057, now without the remark, but with a new name - NATRF2022e2020, for the 2020 epoch (see also [https://mastodon.social/\@EvenRouault/116771634197200255](https://mastodon.social/@EvenRouault/116771634197200255)) and Even Roualt's new signature: "Signed PROJ, your informal Q/A for EPSG":
+
+```{r}
+#| label: natrf1c
+#| echo: FALSE
+#| size: "scriptsize"
+#| collapse: TRUE
+load("v12.057_6318_10968.rda")
+cat(v12.057_10968$wkt, "\n")
+```
+
 ## Testing modernized NSRS - transformation pipeline {.allowframebreaks}
 
 Again, using Javier Jimenez Shaw's test infrastructure, we can access a preliminary transformation pipeline definition from NAD83(2011) to NATRF2022_2D (at the moment the axis order of the position data must be authority compliant as the test infrastructure or its use in `sf::st_transform` has not been generalized to support longitude, latitude order):
@@ -618,10 +653,42 @@ Again, using Javier Jimenez Shaw's test infrastructure, we can access a prelimin
 NAD83.2011_NATRF2022
 ```
 
+## Testing modernized NSRS transformation pipelines in `proj.db` {.allowframebreaks}
+
+v12.029 returns a `noop` for NAD83(2011) to NATRF2022:
+
+```{r}
+#| label: natrf2a
+#| echo: FALSE
+#| size: "scriptsize"
+#| collapse: TRUE
+v12.029_6318_10968
+```
+
+as does v12.049:
+
+```{r}
+#| label: natrf2b
+#| echo: FALSE
+#| size: "scriptsize"
+#| collapse: TRUE
+v12.049_6318_10968
+```
+
+while v12.057 offers the `noop` and two similar pipelines with reported minimal loss of accuracy naming the target as NATRF2022e2020; the chosen pipeline is the same as that returned by Javier Jimenez Shaw's test infrastructure:
+
+```{r}
+#| label: natrf2c
+#| echo: FALSE
+#| size: "scriptsize"
+#| collapse: TRUE
+v12.057_6318_10968
+```
+
 
 ## Testing modernized NSRS - Boston bounding box coordinates by CRS
 
-Using this on the Boston census tract NAD27 data set in `spData` [@R-spData], after first transforming to NAD83 then NAD83(2011), we can see that the coordinate values are changed, most for the big NAD27 to NAD83 step (NAD27 used the Clarke 1866 legacy ellipsoid, NAD83 GRS80 also with different datums):
+Using this on the Boston census tract NAD27 data set in `spData` [@R-spData], after first transforming to NAD83 then NAD83(2011), we can see that the coordinate values are changed, most for the big NAD27 to NAD83 step (NAD27 used the Clarke 1866 legacy ellipsoid, NAD83 GRS80 also with different datums); v12.057 gives the same transformation output as Javier Jimenez Shaw's test infrastructure:
 
 ```{r}
 #| label: natrf3
@@ -631,7 +698,7 @@ Using this on the Boston census tract NAD27 data set in `spData` [@R-spData], af
 #| result: "as.is"
 #| cache: false
 library(tinytable)
-df_boston <- readRDS("df_bbox2.rds")
+df_boston <- readRDS("df_bbox3.rds")
 tt(df_boston, digits=10, width=c(.15, .25, .25, .25, .25)) |> format_tt(output="latex", quarto=FALSE, escape="latex")
 ```
 
@@ -647,7 +714,7 @@ If we approximate using `s2`  [@R-s2] the distances between south-west bounding 
 #| result: "as.is"
 #| cache: false
 library(tinytable)
-dists_df <- readRDS("dists1_df.rds")
+dists_df <- readRDS("dists2_df.rds")
 tt(dists_df) |> format_tt(output="latex", quarto=FALSE, escape="latex")
 ```
 
