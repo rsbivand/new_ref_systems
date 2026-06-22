@@ -136,7 +136,7 @@ A readable text that further explains these concepts is(was) @iliffe+lott08."
 
 ## What is an _epoch_ and a _datum ensemble_? {.allowframebreaks}
 
-- @iliffe+lott08 do not discuss these terms, which entered the EPSG database at version v10 (September 2020) and subsequently, nor does @lott2015, but @lott2019 and @lott2023 do; @iliffe+lott08 and @lott2015 follow ISO 19111:2007 and ISO 19111-2:2009 which apply mainly to _static_ CRS (dynamic is not mentioned in @lott2015), while @lott2019 and @lott2023 elevate to 19111:2019 which also handles _dynamic_ CRS (dynamic is mentioned 125 times in @lott2023)
+- @iliffe+lott08 do not discuss _epoch_ or _datum ensemble_, which entered the European Petroleum Survey Group (EPSG) database at version v10 (September 2020) and subsequently, nor does @lott2015, but @lott2019 and @lott2023 do; @iliffe+lott08 and @lott2015 follow ISO 19111:2007 and ISO 19111-2:2009 which apply mainly to _static_ CRS (dynamic is not mentioned in @lott2015), while @lott2019 and @lott2023 elevate to 19111:2019 which also handles _dynamic_ CRS (dynamic is mentioned 125 times in @lott2023)
 
 - @lott2023 (§3.1.22) defines **epoch** as a "_\<geodesy\> point in time, an epoch is expressed in the Gregorian calendar as a decimal year_"; it expresses the moment at which a position in 2D or 3D is valid with respect to the realization of the reference system, geodetic datum
 
@@ -184,7 +184,7 @@ cat(strsplit(sf::st_crs("EPSG:10604")$wkt, "\\n")[[1]], sep="\n")
 
 ## From historical datums to reference frame realizations
 
-- An IRTF is a realization of the International Terrestrial Reference System, which describes procedures for creating reference frames suitable for use with measurements on or near the Earth's surface
+- An International Terrestrial Reference Frame (IRTF) is a realization of the International Terrestrial Reference System (ITRS), which describes procedures for creating reference frames suitable for use with measurements on or near the Earth's surface
 
 - Each realization attempts to improve on earlier iterations, as mathematical, computational and surveying techniques improve, and as measurements of the speed of shifts in the Earth's surface in relation to the geoid and ellipsoid surface advance
 
@@ -742,6 +742,14 @@ tt(dists_df) |> format_tt(output="latex", quarto=FALSE, escape="latex")
 - So far, the EPSG database has not been updated carefully, so possible mis-steps can enter production inadvertently
 
 - In addition, few tests are in place upstream to safeguard downstream users, so we need to be alert and aware that, in a dynamic world (think leap seconds - they do happen), our results are our responsibility
+
+## What is `ANCHOREPOCH`?
+
+@lott2023a, p. 57: "ANCHOREPOCH is the epoch at which a static reference frame matches a dynamic reference frame from which it has been derived. Note: Not to be confused with the frame reference epoch of dynamic geodetic and dynamic vertical reference frames. Nor with the epoch at which a reference frame is defined to be aligned with another reference frame; this information should be included in the datum anchor definition."
+
+Assignation in EPSG WKT2 seems somewhat confused, see the thread beginning 21 June at [Time dependency in ETRFxx to ETRFyy coordinate transformations?](https://lists.osgeo.org/pipermail/proj/2026-June/012125.html)
+
+PR [https://github.com/OSGeo/PROJ/pull/4792](https://github.com/OSGeo/PROJ/pull/4792) adds `proj_crs_is_dynamic` to permit tests on source and destination CRS; "The terminology around all this is FUBAR, I'm afraid 🙃" (Kristian Evers in PR)
 
 
 ## `sessionInfo` {.allowframebreaks}
