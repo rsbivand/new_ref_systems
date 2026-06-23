@@ -146,7 +146,7 @@ A readable text that further explains these concepts is(was) @iliffe+lott08."
 
 ## WGS84 datum ensemble {.allowframebreaks}
 
-WGS84, also known as EPSG:4326, is perhaps the most frequently used CRS, but is actually an ensemble as noted above and retreived from `sf::st_crs("EPSG:4326")` [@R-sf]:
+WGS84, also known as EPSG:4326, is perhaps the most frequently used CRS, but is an ensemble, retreived from `sf::st_crs("EPSG:4326")` [@R-sf]:
 
 ```{r}
 #| label: ensemble1
@@ -186,9 +186,7 @@ cat(strsplit(sf::st_crs("EPSG:10604")$wkt, "\\n")[[1]], sep="\n")
 
 - An International Terrestrial Reference Frame (IRTF) is a realization of the International Terrestrial Reference System (ITRS), which describes procedures for creating reference frames suitable for use with measurements on or near the Earth's surface
 
-- Each realization attempts to improve on earlier iterations, as mathematical, computational and surveying techniques improve, and as measurements of the speed of shifts in the Earth's surface in relation to the geoid and ellipsoid surface advance
-
-- More accurate measurements of gravitation and magnetism contribute to this, through both satellite and terrestrial instrumentation
+- Each realization attempts to improve on earlier iterations, as mathematical, computational and surveying techniques improve, and as measurements of the speed of shifts in the Earth's surface in relation to the geoid and ellipsoid surface advance; more accurate measurements of gravitation and magnetism contribute to this, through both satellite and terrestrial instrumentation
 
 - Many grids are now available in the PROJ CDN to transform between epochs, based on other grids showing velocities of change between global reference frames and local realizations
 
@@ -200,9 +198,7 @@ cat(strsplit(sf::st_crs("EPSG:10604")$wkt, "\\n")[[1]], sep="\n")
 
 - This relationship between geospatial packages and `proj.db` has existed since GDAL (>=3) and PROJ (>=6) in 2019, and the PROJ CDN ([https://cdn.proj.org](https://cdn.proj.org) from PROJ (>=7) in 2020)
 
-- The `proj.db` SQLite database contains tables from the EPSG ([https://iogp.org](https://iogp.org), [https://epsg.org](https://epsg.org)) geodetic parameter dataset
-
-- Both the EPSG geodetic parameter dataset and the database layout used by PROJ to construct `proj.db` are versioned, raising questions about handling backward compatibility
+- The `proj.db` SQLite database contains tables from the EPSG ([https://iogp.org](https://iogp.org), [https://epsg.org](https://epsg.org)) geodetic parameter dataset; both the EPSG geodetic parameter dataset and the database layout are versioned, raising questions about handling backward compatibility
 
 ```{r}
 #| label: sql0a
@@ -333,7 +329,7 @@ However, the growing complexity of datum definitions taking epoch into account h
 
 Legacy PROJ 4 used the (now) datum ensemble WGS84 as a static hub for coordinate transformation between a source and a target CRS, transforming from source datum to WGS84, then transforming again to the target datum reducing accuracy twice.
 
-From PROJ 6, only one transformation pipeline is used, directly from source to target or via varying intermediate steps [@knudsen+evers17; @evers+knudsen17].
+From PROJ 6, a transformation pipeline is used, directly from source to target or via varying intermediate steps [@knudsen+evers17; @evers+knudsen17].
 
 Because the code used for searching for transformation pipelines may be updated between versions of PROJ itself, we need not only to track versions of EPSG, but also versions of PROJ.
 
@@ -699,12 +695,12 @@ Using this on the Boston census tract NAD27 data set in `spData` [@R-spData], af
 #| cache: false
 library(tinytable)
 df_boston <- readRDS("df_bbox3.rds")
-tt(df_boston, digits=10, width=c(.15, .25, .25, .25, .25)) |> format_tt(output="latex", quarto=FALSE, escape="latex")
+tt(df_boston, digits=10) |> format_tt(output="latex", quarto=FALSE, escape="latex")
 ```
 
 ## Testing modernized NSRS - distances between Boston points by CRS
 
-If we approximate using `s2`  [@R-s2] the distances between south-west bounding box coordinates, treating them as if they had the same CRS, we can see that the modernization from NAD83(2011) to NATRF2022 causes a shift of just over a metre:
+Approximating with `s2`  [@R-s2] the distances between south-west bounding box coordinates, we can see that the modernization from NAD83(2011) to NATRF2022 causes a shift of just over a metre ([PR 4775](https://github.com/OSGeo/PROJ/pull/4775) probably caused the NATRF2022(PROJ 9.8)-NATRF2022e2020(PROJ 9.9) difference):
 
 ```{r}
 #| label: natrf4
@@ -749,7 +745,7 @@ tt(dists_df) |> format_tt(output="latex", quarto=FALSE, escape="latex")
 
 Assignation in EPSG WKT2 seems somewhat confused, see the thread beginning 21 June at [Time dependency in ETRFxx to ETRFyy coordinate transformations?](https://lists.osgeo.org/pipermail/proj/2026-June/012125.html)
 
-PR [https://github.com/OSGeo/PROJ/pull/4792](https://github.com/OSGeo/PROJ/pull/4792) adds `proj_crs_is_dynamic` to permit tests on source and destination CRS; "The terminology around all this is FUBAR, I'm afraid 🙃" (Kristian Evers in PR)
+PR [https://github.com/OSGeo/PROJ/pull/4792](https://github.com/OSGeo/PROJ/pull/4792) adds `proj_crs_is_dynamic` to permit tests on source and destination CRS; "The terminology around all this is FUBAR, I'm afraid" (Kristian Evers in PR)
 
 
 ## `sessionInfo` {.allowframebreaks}
