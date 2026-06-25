@@ -286,199 +286,7 @@ ETRS89 <- read.csv("ETRS89.csv")
 tt(ETRS89, width=c(.2, .1, .1, .1, .1, .2), notes="GEOD: EPSG code, geocentric (m); GEOG3D: EPSG code, geographical with ellipsoidal height (m); GEOG2D: EPSG code, geographical") |> format_tt(output="latex", quarto=FALSE, escape="latex")
 ```
 
-
-## Improved datum definitions disrupt searching for transformation pipelines {.allowframebreaks}
-
-The release of PROJ 9.8.0 on 2 March 2026 with EPSG database v12.049 including an in-place update to EPSG:4937, the European Terrestrial Reference System 1989 ensemble, things got complicated. 
-
-Jochem Lesparre on the PROJ mailing list (10 March 2026)- "transformations that used to give correct results (e.g. in PROJ 9.7.1) do no longer give results according to the official transformation" ([(https://lists.osgeo.org/pipermail/proj/2026-March/012026.html](https://lists.osgeo.org/pipermail/proj/2026-March/012026.html))
-
-If we take the difference between ETRS89 (EPSG:4937) in v12.029 and v12.049, we see that 45 national/local realizations were added to the list of ensemble members(and one other line was edited):
-
-```{r}
-#| label: etrs89diff
-#| echo: FALSE
-#| size: "scriptsize"
-#| collapse: TRUE
-epsg_4937_9.8.0 <- readLines("epsg_4937_9.8.0.txt")
-epsg_4937_9.7.1 <- readLines("epsg_4937_9.7.1.txt")
-cat("in v12.049, not in v12.029\n")
-cat(setdiff(epsg_4937_9.8.0, epsg_4937_9.7.1)[1:45], sep="\n")
-cat("in v12.029, not in v12.049\n")
-cat(setdiff(epsg_4937_9.7.1, epsg_4937_9.8.0), sep="\n")
-
-```
-
-Between v12.049 and v12.057, changes are more cosmetic:
-
-```{r}
-#| label: etrs89diff1
-#| echo: FALSE
-#| size: "scriptsize"
-#| collapse: TRUE
-epsg_4937_9.9.0 <- readLines("epsg_4937_9.9.0.txt")
-cat("in v12.049, not in v12.057\n")
-cat(setdiff(epsg_4937_9.8.0, epsg_4937_9.9.0), sep="\n")
-cat("in v12.057, not in v12.049\n")
-cat(setdiff(epsg_4937_9.9.0, epsg_4937_9.8.0), sep="\n")
-```
-
-The point raised by Jochem Lesparre applied not just to the changes in place in CRS definitions, but more crucially to the lack of synchronization engendered in transformation between CRS. Adding information to CRS to accommodate our understanding that they should more often be seen as dynamic is probably needed. 
-
-However, the growing complexity of datum definitions taking epoch into account has made the heuristics for choosing transformation pipelines (also from tables in `proj.db`) more challenging. 
-
-Legacy PROJ 4 used the (now) datum ensemble WGS84 as a static hub for coordinate transformation between a source and a target CRS, transforming from source datum to WGS84, then transforming again to the target datum reducing accuracy twice.
-
-From PROJ 6, a transformation pipeline is used, directly from source to target or via varying intermediate steps [@knudsen+evers17; @evers+knudsen17].
-
-Because the code used for searching for transformation pipelines may be updated between versions of PROJ itself, we need not only to track versions of EPSG, but also versions of PROJ.
-
-The pipelines now need to be found by searching multiple table joins on the EPSG database in `proj.db`, ordering in terms of accuracy and whether transformation grids needed by the preferred pipelines are available, for example for on-demand download from the PROJ CDN.
-
-Even Rouault commented 12 March: "There are situations where if you use the most complicated SQL requests it supports (and PROJ just limits itself to finding a single intermediate step...)  you can end up with several hundreds or more potential transformation pipelines, with runtime of the order of second. While the execution of the pipeline is of the order of the microsecond for a coordinate. So before going to that, it checks if the results of less costly requests look to be good enough" ([https://lists.osgeo.org/pipermail/proj/2026-March/012037.html](https://lists.osgeo.org/pipermail/proj/2026-March/012037.html)).
-
-Again on 10 May: "#PROJ challenge: propose a projinfo invocation searching operations between a source and target CRS and switches of your choice leading to the highest number of candidate operations. Record to beat: 717 (including ballpark operations) / 399 (without ballpark)" ([https://mastodon.social/\@EvenRouault/116547361316876154](https://mastodon.social/@EvenRouault/116547361316876154)).
-
-PROJ 9.8.0 and `proj.db` based on EPSG v12.049 was replaced by PROJ 9.8.1 with the same `proj.db` based on EPSG v12.029 published in PROJ 9.7.1. 
-
-The development version of PROJ has, since the problems became evident, received numerous "MEGA" (Make ETRS89 Great Again) commits. 
-
-The discussion in [https://github.com/OSGeo/PROJ/pull/4736](https://github.com/OSGeo/PROJ/pull/4736) summarizes the situation as "... _I hope the EPSG guys come up with a solid plan. At the moment they're testing in prod(uction)_" (Kristian Evers, 3 April).
-
-PROJ PR [https://github.com/OSGeo/PROJ/pull/4773](https://github.com/OSGeo/PROJ/pull/4773) merged 14 May adopts a hopefully less fragile logic for finding pipeline candidates affected by the ETRS89 ensemble changes in the EPSG database.
-
-Does the remark by Jochem Lesparre (12 March) finding errors of up to 0.25 m affect R workflows when comparing coordinate transformation pipelines chosen in PROJ 9.7.1 and the troubled PROJ 9.8.0; is the problem mitigated in PROJ devel? See [https://lists.osgeo.org/pipermail/proj/2026-March/012036.html](https://lists.osgeo.org/pipermail/proj/2026-March/012036.html)
-
-```{r}
-#| label: meuse_diffs00
-#| echo: FALSE
-#| eval: FALSE
-td <- tempfile()
-dir.create(td)
-Sys.setenv("PROJ_USER_WRITABLE_DIRECTORY"=td)
-Sys.setenv("PROJ_NETWORK"="ON")
-(pths <- sf::sf_proj_search_paths())
-library(RSQLite)
-db <- dbConnect(SQLite(), dbname=file.path(td, "cache.db"))
-data(meuse, package="sp")
-meuse_sf <- sf::st_as_sf(meuse, coords=c("x", "y"), crs="EPSG:28992")
-t1_9.9.0_cdn <- sf::st_transform(sf::st_geometry(meuse_sf), "EPSG:4258")
-saveRDS(t1_9.9.0_cdn, file="t1_9.9.0_cdn.rds")
-dbReadTable(db, "chunks")
-ot_9.9.0_int <- sf::sf_proj_pipelines(sf::st_crs(meuse_sf), "EPSG:4258", Use="INTERSECTION")
-saveRDS(ot_9.9.0_int, file="ot_9.9.0_int.rds")
-dbReadTable(db, "chunks")
-mat <- sf::st_coordinates(meuse_sf)
-rdtrans2018 <- sf::sf_project(from=ot_9.9.0_int[1,"definition"], pts=mat)
-rdtrans2018_sfc <- sf::st_cast(sf::st_sfc(sf::st_multipoint(rdtrans2018), crs="EPSG:4258"), "POINT")
-rdtrans2018_sf <- sf::st_transform(sf::st_geometry(meuse_sf), crs="EPSG:4258", pipeline=ot_9.9.0_int[1,"definition"])
-molobadekas <- sf::sf_project(from=ot_9.9.0_int[4,"definition"], pts=mat)
-molobadekas_sfc <- sf::st_cast(sf::st_sfc(sf::st_multipoint(molobadekas), crs="EPSG:4258"), "POINT")
-molobadekas_sf <- sf::st_transform(sf::st_geometry(meuse_sf), crs="EPSG:4258", pipeline=ot_9.9.0_int[4,"definition"])
-rdtrans2008 <- sf::sf_project(from=ot_9.9.0_int[3,"definition"], pts=mat)
-rdtrans2008_sfc <- sf::st_cast(sf::st_sfc(sf::st_multipoint(rdtrans2008), crs="EPSG:4258"), "POINT")
-rdtrans2008_sf <- sf::st_transform(sf::st_geometry(meuse_sf), crs="EPSG:4258", pipeline=ot_9.9.0_int[3,"definition"])
-save(molobadekas_sfc, molobadekas_sf, rdtrans2008_sfc, rdtrans2008_sf, rdtrans2018_sfc, rdtrans2018_sf, file="using_pipelines.rda")
-dbReadTable(db, "chunks")
-dbDisconnect(db)
-```
-
-```{r}
-#| label: meuse_diffs0
-#| echo: FALSE
-#| cache: false
-#| size: "scriptsize"
-#| collapse: TRUE
-t1_9.7.1_cdn <- readRDS("t1_9.7.1_cdn.rds")
-t1_9.8.0_cdn <- readRDS("t1_9.8.0_cdn.rds")
-t1_9.9.0_cdn <- readRDS("t1_9.9.0_cdn.rds")
-ot_9.7.1_int <- readRDS("ot_9.7.1_int.rds")
-ot_9.8.0_int <- readRDS("ot_9.8.0_int.rds")
-ot_9.9.0_int <- readRDS("ot_9.9.0_int.rds")
-load("using_pipelines.rda")
-```
-
-Running the command to identify candidate transformation pipelines as in Jochem Lesparre's post: `sf::sf_proj_pipelines("EPSG:28992", "EPSG:4258", Use="INTERSECTION")` on these three versions of PROJ, we find that 9.7.1 returns `{r} print(nrow(ot_9.7.1_int))` candidates, 9.8.0: `{r} print(nrow(ot_9.8.0_int))` candidates, and 9.9.0: `{r} print(nrow(ot_9.9.0_int))` candidates. So candidate counts increased as heuristics were modified to compensate for the added complexity of the epoch-based ETRS89 datum ensemble.
-
-```{r}
-#| label: meuse_diffs1
-#| echo: TRUE
-#| cache: false
-#| size: "scriptsize"
-#| collapse: TRUE
-(m_71_80 <- match(ot_9.7.1_int[,"definition"], ot_9.8.0_int[,"definition"]))
-(m_71_90 <- match(ot_9.7.1_int[,"definition"], ot_9.9.0_int[,"definition"]))
-ot_9.9.0_int[m_71_90, "accuracy"]
-```
-
-Neither of the two pipelines found for 9.7.1 were found for 9.8.0, meaning that the change to the broader ETRS89 ensemble had confused the PROJ <= 9.8.0 heuristics for finding preferred pipelines. 
-
-The two 9.7.1 pipelines were found for 9.9.0, where the first gives high accuracy, using a modern grid `rdtrans2018` available from [https://cdn.proj.org/nl_nsgi_README.txt](https://cdn.proj.org/nl_nsgi_README.txt), the PROJ CDN: 
-
-```{r}
-#| label: meuse_diffs1b
-#| echo: false
-#| cache: false
-#| size: "scriptsize"
-#| collapse: TRUE
-o <- unlist(strsplit(ot_9.9.0_int[m_71_90[1], "definition"], "\\+step"))
-cat(strwrap(c(o[1], paste("+step", o[-1])), exdent=4), sep="\n")
-```
-
-The second pipeline is a Helmert transformation. All four 9.8.0 pipelines were found for 9.9.0, but none of them were in the most accurate position (ranked 1). 
-
-The first found pipeline for 9.8.0 used an out-dated grid not available from the PROJ CDN, the second a Molobadekas transformation, the third a Helmert transformation, and the fourth only has ballpark accuracy.
-
-```{r}
-#| label: meuse_diffs1a
-#| echo: TRUE
-#| cache: false
-#| size: "scriptsize"
-#| collapse: TRUE
-(m_80_90 <- match(ot_9.8.0_int[,"definition"], ot_9.9.0_int[,"definition"]))
-```
-
-Using the classical Meuse bank soil pollution data set in the `sp` package [@R-sp], with coordinates measured in EPSG:28992 and tranforming to EPSG:4258 as in Jochem Lesparre's issue, we can track the average distances between transformations made with different versions of PROJ and the associated versions of the EPSG database. 
-
-We have 9.7.1 (under Windows, so a slightly different C math library) and 9.8.0 and 9.9.0 d258a97 (Fedora 44). 9.8.0 is about 12 cm off on average by comparison with 9.7.1 at the data location in the far south of the Netherlands. 9.9.0 has the same difference from 9.8.0. 
-
-```{r}
-#| label: meuse_diffs2
-#| echo: TRUE
-#| cache: false
-#| size: "scriptsize"
-#| collapse: TRUE
-mean(diag(sf::st_distance(t1_9.7.1_cdn, t1_9.8.0_cdn)))
-mean(diag(sf::st_distance(t1_9.8.0_cdn, t1_9.9.0_cdn)))
-```
-
-
-Using the pipeline argument in `sf::st_transform`, the modern grid pipeline `rdtrans2018` can be replicated, as can the `molobadekas` pipeline. This demonstrates that 9.8.0 uses the `molobadekas` pipeline, 9.7.1 and 9.9.0 use the `rdtrans2018` pipeline, and that 9.7.1 and 9.9.0 differ by a minimal amount between Windows and Fedora C math libraries (the pipelines involve calls to trigonometry functions).
-
-```{r}
-#| label: meuse_diffs2a
-#| echo: TRUE
-#| cache: false
-#| size: "scriptsize"
-#| collapse: TRUE
-mean(diag(sf::st_distance(molobadekas_sf, t1_9.8.0_cdn)))
-mean(diag(sf::st_distance(molobadekas_sf, rdtrans2018_sf)))
-mean(diag(sf::st_distance(t1_9.9.0_cdn, rdtrans2018_sf)))
-mean(diag(sf::st_distance(t1_9.7.1_cdn, t1_9.9.0_cdn)))
-```
-
-
-## ETRS status
-
-- So, yes, Jochem Lesparre's issue obviously would affect R spatial workflows if packages are built against PROJ 9.8.0
-
-- Luckily, the problem was detected early within PROJ, and PROJ 9.8.1 was released with EPSG v12.029, stepping back from tracking current EPSG moves
-
-- Work is continuing within PROJ to debate, test and implement improvements to heuristics for finding transformation pipelines and ordering then by accuracy
-
-- _Epoch_ and _datum ensemble_ issues are unlikely to go way, as changes in North America are forthcoming
-
-- Even Rouault on Mastodon (May 13): "Heard in a meeting: proprietary software tracks #PROJ changes to keep informed of changes in the EPSG dataset" [https://mastodon.social/\@EvenRouault/116567675016927438](https://mastodon.social/@EvenRouault/116567675016927438)
+## Section being re-drafted following constructive feedback
 
 ## Who are the actors?
 
@@ -626,7 +434,7 @@ load("v12.049_6318_10968.rda")
 cat(v12.049_10968$wkt, "\n")
 ```
 
-and v12.057, now without the remark, but with a new name - NATRF2022e2020, for the 2020 epoch (see also [https://mastodon.social/\@EvenRouault/116771634197200255](https://mastodon.social/@EvenRouault/116771634197200255)) and Even Roualt's new signature: "Signed PROJ, your informal Q/A for EPSG":
+and v12.057, now without the remark, but with a new name - NATRF2022e2020, for the 2020 epoch:
 
 ```{r}
 #| label: natrf1c
@@ -735,9 +543,7 @@ tt(dists_df) |> format_tt(output="latex", quarto=FALSE, escape="latex")
 
 - There are many public mapping agencies, and their adaptations may impact users in unexpected ways - also unexpected for the agencies
 
-- So far, the EPSG database has not been updated carefully, so possible mis-steps can enter production inadvertently
-
-- In addition, few tests are in place upstream to safeguard downstream users, so we need to be alert and aware that, in a dynamic world (think leap seconds - they do happen), our results are our responsibility
+- BEING RE-DRAFTED following informative comments
 
 ## What is `ANCHOREPOCH`?
 
