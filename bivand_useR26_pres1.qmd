@@ -747,6 +747,26 @@ Assignation in EPSG WKT2 seems somewhat confused, see the thread beginning 21 Ju
 
 PR [https://github.com/OSGeo/PROJ/pull/4792](https://github.com/OSGeo/PROJ/pull/4792) adds `proj_crs_is_dynamic` to permit tests on source and destination CRS; "The terminology around all this is FUBAR, I'm afraid" (Kristian Evers in PR)
 
+## Draft [PR 4793](https://github.com/OSGeo/PROJ/pull/4793): Do not use ITRF2020 as an intermediate for NAD83(2011) to NATRF2022
+
+- The heuristics used in PROJ to find and order transformation pipelines only sometimes match the operation sequences proposed by national mapping agencies
+
+- The comments in the [PR](https://github.com/OSGeo/PROJ/pull/4793) help understand what appears to be the decision sequence
+
+- Mapping agencies prepare prototype in-house transformation operations, but these (often) seem not to be easy to generalise as EPSG registrations
+
+- Finally, PROJ heuristics try to work around uncertainties, as end users need something that "works" to execute transformations
+
+## Heads up to Python, Julia, QGIS, GRASS, etc.
+
+- All of the issues raised here apply to software using PROJ, and PROJ through GDAL
+
+- These include other interactive environments such as Python and Julia
+
+- They also include desktop GIS such as QGIS, GRASS, and web mapping applications
+
+- So hopefully these notes are not only relevant for R packages
+
 
 ## `sessionInfo` {.allowframebreaks}
 
