@@ -7,7 +7,7 @@ output:
 theme: united
 ---
 
-### [Is here still where it was? Changes in terrestrial reference frames in R spatial packages](https://rsbivand.github.io/new_ref_systems/bivand_useR26_pres1.pdf)
+### [Is here still where it was? Changes in terrestrial reference frames in R spatial packages](https://rsbivand.github.io/new_ref_systems/bivand_useR26_pres2.pdf)
 
 ### [Source repository](https://github.com/rsbivand/new_ref_systems)
 

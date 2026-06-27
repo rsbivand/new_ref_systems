@@ -1,5 +1,5 @@
 ---
-title: "Is here still where it was? Changes in terrestrial reference frames in R spatial packages"
+title: "Is here still where it was? Changes in terrestrial reference frames in R spatial packages (2026-06-27 revision)"
 subtitle: "useR! 2026, Warsaw, Poland"
 date: 2026-07-08
 author:
@@ -74,7 +74,7 @@ knitr::write_bib(c('sf', 'sp', 'spData', 's2', 'geofi', 'terra', 'gdalraster', '
 
 - "Stationary" objects move in geodetic terms when the tectonic plate on which they are located moves in any of the three axes
 
-- Plate movements are anchored by date, so position measurements need to be dated to fix them in 3D+time
+- Plate movements are given by date, so position measurements need to be dated to fix them in 3D+time
 
 - "Here" in the view of one country's mapping agency may not have the same coordinates as the same position viewed by a neighbouring country's mapping agency, or the same country's mapping agency at a different point in time
 
@@ -112,13 +112,14 @@ tmap::tm_shape(vel[,,,1:3]) + tmap::tm_raster(col.scale=tmap::tm_scale_continuou
 
 - Most legacy CRS did not take continental drift into account
 
-- The demands on CRS for accuracy and measurable errors have increased greatly, especially with the general availability of GNSS receivers
-
-- Countries/jurisdictions adopt CRS for official purposes, and often manage them differently
+- The demands on CRS for accuracy and measurable errors have increased greatly, especially with the general availability of GNSS receivers; errors at metre scale are now unacceptable, and sub-metre errors are undesirable
 
 - Global CRS have to match global crustal movement, but regional/national CRS are most often fixed to the most appropriate tectonic plate
 
-- Errors at metre scale are now unacceptable, and sub-metre errors are undesirable
+- Countries/jurisdictions adopt CRS for official purposes, and their mapping agencies often manage them differently
+
+- Fitting different mapping agency practices balancing science with practical needs into a shared database involves complex trade-offs
+
 
 # Definitions
 
@@ -182,6 +183,7 @@ The most recent update is aligned with ITRF2020, the most recent International T
 cat(strsplit(sf::st_crs("EPSG:10604")$wkt, "\\n")[[1]], sep="\n")
 ```
 
+
 ## From historical datums to reference frame realizations
 
 - An International Terrestrial Reference Frame (IRTF) is a realization of the International Terrestrial Reference System (ITRS), which describes procedures for creating reference frames suitable for use with measurements on or near the Earth's surface
@@ -189,6 +191,55 @@ cat(strsplit(sf::st_crs("EPSG:10604")$wkt, "\\n")[[1]], sep="\n")
 - Each realization attempts to improve on earlier iterations, as mathematical, computational and surveying techniques improve, and as measurements of the speed of shifts in the Earth's surface in relation to the geoid and ellipsoid surface advance; more accurate measurements of gravitation and magnetism contribute to this, through both satellite and terrestrial instrumentation
 
 - Many grids are now available in the PROJ CDN to transform between epochs, based on other grids showing velocities of change between global reference frames and local realizations
+
+## So what is a `FRAMEEPOCH`? {.allowframebreaks}
+
+- In `EPSG:10604`, WGS 84 (G2296), we see `FRAMEEPOCH`; here we need to lean on definitions given in @lott2023a, annex B, pp. 83--87
+
+- "Historically national and regional geodetic CRSs have been realized through the coordinates of points on the surface of the Earth. Those points move with the regional tectonic plate and to an observer situated on the tectonic plate the coordinates appear to be unchanging with time. This is called a _static reference frame_"
+
+- "Modern geodesy recognises that the surface of the Earth is deforming. The coordinates of points may change with time. The time evolution of coordinates may be included in the geodetic reference frame definition. Alternatively, or additionally, a crustal deformation model may be associated with the reference frame. A frame in which coordinates may change with time is called a _dynamic reference
+frame_"
+
+- "When a reference frame and its coordinate reference system is fixed to the Earth as a whole, the individual tectonic plates move (albeit slowly, a few centimetres a year) within the system. To an observer on a tectonic plate the coordinates of his location within the earth-fixed Cartesian coordinate system change slowly with time – a dynamic reference frame. Examples include ITRF realizations and systems used by global satellite navigation systems such as WGS 84 used by GPS, PZ-90 by GLONASS, etc."
+
+- "The tectonic plates may be subject to local crustal deformation caused by processes such as earthquake or post-glacial isostatic rebound. These deformations may be modelled, usually as a velocity grid. A CRS that has an associated deformation model is dynamic, regardless of whether it is plate-fixed or earth-fixed"
+
+- "A CRS is dynamic either if it has a dynamic reference frame or if it is associated with a velocity model"
+
+- "For practical application on a non-global basis, a dynamic CRS is not always convenient. Users prefer coordinates of locations on stable parts of tectonic plates to be constant. Regional and national reference frames may be defined to be fixed to the local tectonic plate with their definition adopting ITRF coordinate values at a chosen frame reference epoch"
+
+- "The coincidence of the two frames is only at the chosen epoch. Due to the motion of the tectonic plate to which the plate-fixed frame is fixed, the relationship between the global frame and the plate-fixed regional or national frame will then change slowly with time. Transformations between global and these national systems contain time evolution"
+
+- What then is `ANCHOREPOCH` which we'll see in the North America section? @lott2023a, p. 57: "ANCHOREPOCH is the epoch at which a static reference frame matches a dynamic reference frame from which it has been derived. Note: Not to be confused with the frame reference epoch of dynamic geodetic and dynamic vertical reference frames. Nor with the epoch at which a reference frame is defined to be aligned with another reference frame; this information should be included in the datum anchor definition."
+
+
+## Who are the actors? {.allowframebreaks}
+
+- Perhaps changes are being driven by national or sub-national mapping agencies; [the British Ordnance Survey has a useful guide](https://www.ordnancesurvey.co.uk/geodesy-positioning/coordinate-transformations/resources)
+
+- In addition, supra-national coordinating bodies, for example in navigaation, contribute; [Eurocontrol has a similar guide](https://www.eurocontrol.int/publication/coordinate-reference-systems-basic-user-guide)
+
+- Cartography and surveying have become much less important as users of position data, while navigation, construction and agriculture are more important civilian uses
+
+- Integration and analysis of attribute data observed at recorded locations over time faces challenges if the CRS of the locations are changed
+
+- There are several indeterminate decision levels, with tension between mapping agencies serving end users who prefer minimal change and geodesy which prefers scienfic veracity, implying the correct representation of change, i.e. dynamism
+
+- The mapping agencies are sovereign, but where jurisdictions meet, someone has to try to match borders, either between neighbouring agencies, or most helpfully through the IOGP/EPSG ([https://iogp.org](https://iogp.org), [https://epsg.org](https://epsg.org) - Roger Lott is affiliated with the International Association of Oil & Gas Producers (IOGP), which makes major contributions to standards definition by Open Geospatial Consortium (OGC)), which has accumulated much practical experience through the decades
+
+- The solutions to definition problems are then exposed in the EPSG geodetic parameter database, and through database values in PROJ, and on to software including R packages linking to PROJ
+
+- The national mapping agencies also provide transformation definitions, grids, and sometimes also software that apply to the scope area, but which do not interoperate with other jurisdictions
+
+- Writing per-jurisdiction plug-in software for R-packages for transformations is not practical, PROJ with the EPSG geodetic parameter is a much better choice, also for global use
+
+- Finally, PROJ heuristics try to work around uncertainties, as end users need something that "works" to execute transformations
+
+- The heuristics used in PROJ to find and order transformation pipelines only sometimes match the operation sequences proposed by national mapping agencies
+
+- The comments in a PROJ [PR](https://github.com/OSGeo/PROJ/pull/4793) help understand what appears to be the decision sequence
+
 
 # Software implementation in R spatial packages
 
@@ -198,7 +249,7 @@ cat(strsplit(sf::st_crs("EPSG:10604")$wkt, "\\n")[[1]], sep="\n")
 
 - This relationship between geospatial packages and `proj.db` has existed since GDAL (>=3) and PROJ (>=6) in 2019, and the PROJ CDN ([https://cdn.proj.org](https://cdn.proj.org) from PROJ (>=7) in 2020)
 
-- The `proj.db` SQLite database contains tables from the EPSG ([https://iogp.org](https://iogp.org), [https://epsg.org](https://epsg.org)) geodetic parameter dataset; both the EPSG geodetic parameter dataset and the database layout are versioned, raising questions about handling backward compatibility
+- The `proj.db` SQLite database contains tables from the EPSG geodetic parameter dataset; both the EPSG geodetic parameter dataset and the database layout are versioned, raising questions about handling backward compatibility
 
 ```{r}
 #| label: sql0a
@@ -255,7 +306,7 @@ New standards are entering the EPSG database, so through PROJ and GDAL, enter R 
 The adaptations to earlier changes in the PROJ external library described in section 4 of @bivand:20 and @pebesma+bivand:23 may not be sufficient, see also [https://r-spatial.github.io/evolution/CRS_projections_transformations.html](https://r-spatial.github.io/evolution/CRS_projections_transformations.html), which is also no longer sufficient
 
 
-# EPSG table changes disrupt workflows
+# EPSG table changes affect workflows
 
 ## Prelude in Finland: `geofi` started failing with PROJ 9.6.0 {.allowframebreaks}
 
@@ -286,17 +337,195 @@ ETRS89 <- read.csv("ETRS89.csv")
 tt(ETRS89, width=c(.2, .1, .1, .1, .1, .2), notes="GEOD: EPSG code, geocentric (m); GEOG3D: EPSG code, geographical with ellipsoidal height (m); GEOG2D: EPSG code, geographical") |> format_tt(output="latex", quarto=FALSE, escape="latex")
 ```
 
-## Section being re-drafted following constructive feedback
 
-## Who are the actors?
+## Improved datum definitions affect searching for transformation pipelines {.allowframebreaks}
 
-- Perhaps changes are being driven by national or sub-national mapping agencies; [the British Ordnance Survey has a useful guide](https://www.ordnancesurvey.co.uk/geodesy-positioning/coordinate-transformations/resources)
+The release of PROJ 9.8.0 on 2 March 2026 with EPSG database v12.049 including an in-place update to EPSG:4937, the European Terrestrial Reference System 1989 ensemble, things got complicated. 
 
-- In addition, supra-national coordinating bodies, for example in navigaation, contribute; [Eurocontrol has a similar guide](https://www.eurocontrol.int/publication/coordinate-reference-systems-basic-user-guide)
+Jochem Lesparre on the PROJ mailing list (10 March 2026)- "transformations that used to give correct results (e.g. in PROJ 9.7.1) do no longer give results according to the official transformation" ([(https://lists.osgeo.org/pipermail/proj/2026-March/012026.html](https://lists.osgeo.org/pipermail/proj/2026-March/012026.html))
 
-- Cartography and surveying have become much less important as users of position data, while navigation, construction and agriculture are more important civilian uses
+If we take the difference between ETRS89 (EPSG:4937) in v12.029 and v12.049, we see that 45 national/local realizations were added to the list of ensemble members(and one other line was edited):
 
-- Integration and analysis of attribute data observed at recorded locations over time faces challenges if the CRS of the locations are changed
+```{r}
+#| label: etrs89diff
+#| echo: FALSE
+#| size: "scriptsize"
+#| collapse: TRUE
+epsg_4937_9.8.0 <- readLines("epsg_4937_9.8.0.txt")
+epsg_4937_9.7.1 <- readLines("epsg_4937_9.7.1.txt")
+cat("in v12.049, not in v12.029\n")
+cat(setdiff(epsg_4937_9.8.0, epsg_4937_9.7.1)[1:45], sep="\n")
+cat("in v12.029, not in v12.049\n")
+cat(setdiff(epsg_4937_9.7.1, epsg_4937_9.8.0), sep="\n")
+
+```
+
+Between v12.049 and v12.057, changes are more cosmetic:
+
+```{r}
+#| label: etrs89diff1
+#| echo: FALSE
+#| size: "scriptsize"
+#| collapse: TRUE
+epsg_4937_9.9.0 <- readLines("epsg_4937_9.9.0.txt")
+cat("in v12.049, not in v12.057\n")
+cat(setdiff(epsg_4937_9.8.0, epsg_4937_9.9.0), sep="\n")
+cat("in v12.057, not in v12.049\n")
+cat(setdiff(epsg_4937_9.9.0, epsg_4937_9.8.0), sep="\n")
+```
+
+The point raised by Jochem Lesparre applied not just to the changes in place in CRS definitions, but more crucially to the lack of synchronization engendered in transformation between CRS. Adding information to CRS to accommodate our understanding that they should more often be seen as dynamic is probably needed. 
+
+However, the growing complexity of datum definitions taking epoch into account has made the heuristics for choosing transformation pipelines (also from tables in `proj.db`) more challenging. 
+
+Legacy PROJ 4 used the (now) datum ensemble WGS84 as a static hub for coordinate transformation between a source and a target CRS, transforming from source datum to WGS84, then transforming again to the target datum reducing accuracy twice.
+
+From PROJ 6, a transformation pipeline is used, directly from source to target or via varying intermediate steps [@knudsen+evers17; @evers+knudsen17].
+
+Because the code used for searching for transformation pipelines may be updated between versions of PROJ itself, we need not only to track versions of EPSG, but also versions of PROJ.
+
+The pipelines now need to be found by searching multiple table joins on the EPSG database in `proj.db`, ordering in terms of accuracy and whether transformation grids needed by the preferred pipelines are available, for example for on-demand download from the PROJ CDN.
+
+Even Rouault commented 12 March: "There are situations where if you use the most complicated SQL requests it supports (and PROJ just limits itself to finding a single intermediate step...)  you can end up with several hundreds or more potential transformation pipelines, with runtime of the order of second. While the execution of the pipeline is of the order of the microsecond for a coordinate. So before going to that, it checks if the results of less costly requests look to be good enough" ([https://lists.osgeo.org/pipermail/proj/2026-March/012037.html](https://lists.osgeo.org/pipermail/proj/2026-March/012037.html)).
+
+Again on 10 May: "#PROJ challenge: propose a projinfo invocation searching operations between a source and target CRS and switches of your choice leading to the highest number of candidate operations. Record to beat: 717 (including ballpark operations) / 399 (without ballpark)" ([https://mastodon.social/\@EvenRouault/116547361316876154](https://mastodon.social/@EvenRouault/116547361316876154)).
+
+PROJ 9.8.0 and `proj.db` based on EPSG v12.049 was replaced by PROJ 9.8.1 with the same `proj.db` based on EPSG v12.029 published in PROJ 9.7.1. 
+
+PROJ PR [https://github.com/OSGeo/PROJ/pull/4773](https://github.com/OSGeo/PROJ/pull/4773) merged 14 May adopts a hopefully less fragile logic for finding pipeline candidates affected by the ETRS89 ensemble changes in the EPSG database.
+
+Does the remark by Jochem Lesparre (12 March) finding errors of up to 0.25 m affect R workflows when comparing coordinate transformation pipelines chosen in PROJ 9.7.1 and the troubled PROJ 9.8.0; is the problem mitigated in PROJ devel? See [https://lists.osgeo.org/pipermail/proj/2026-March/012036.html](https://lists.osgeo.org/pipermail/proj/2026-March/012036.html)
+
+```{r}
+#| label: meuse_diffs00
+#| echo: FALSE
+#| eval: FALSE
+td <- tempfile()
+dir.create(td)
+Sys.setenv("PROJ_USER_WRITABLE_DIRECTORY"=td)
+Sys.setenv("PROJ_NETWORK"="ON")
+(pths <- sf::sf_proj_search_paths())
+library(RSQLite)
+db <- dbConnect(SQLite(), dbname=file.path(td, "cache.db"))
+data(meuse, package="sp")
+meuse_sf <- sf::st_as_sf(meuse, coords=c("x", "y"), crs="EPSG:28992")
+t1_9.9.0_cdn <- sf::st_transform(sf::st_geometry(meuse_sf), "EPSG:4258")
+saveRDS(t1_9.9.0_cdn, file="t1_9.9.0_cdn.rds")
+dbReadTable(db, "chunks")
+ot_9.9.0_int <- sf::sf_proj_pipelines(sf::st_crs(meuse_sf), "EPSG:4258", Use="INTERSECTION")
+saveRDS(ot_9.9.0_int, file="ot_9.9.0_int.rds")
+dbReadTable(db, "chunks")
+mat <- sf::st_coordinates(meuse_sf)
+rdtrans2018 <- sf::sf_project(from=ot_9.9.0_int[1,"definition"], pts=mat)
+rdtrans2018_sfc <- sf::st_cast(sf::st_sfc(sf::st_multipoint(rdtrans2018), crs="EPSG:4258"), "POINT")
+rdtrans2018_sf <- sf::st_transform(sf::st_geometry(meuse_sf), crs="EPSG:4258", pipeline=ot_9.9.0_int[1,"definition"])
+molobadekas <- sf::sf_project(from=ot_9.9.0_int[4,"definition"], pts=mat)
+molobadekas_sfc <- sf::st_cast(sf::st_sfc(sf::st_multipoint(molobadekas), crs="EPSG:4258"), "POINT")
+molobadekas_sf <- sf::st_transform(sf::st_geometry(meuse_sf), crs="EPSG:4258", pipeline=ot_9.9.0_int[4,"definition"])
+rdtrans2008 <- sf::sf_project(from=ot_9.9.0_int[3,"definition"], pts=mat)
+rdtrans2008_sfc <- sf::st_cast(sf::st_sfc(sf::st_multipoint(rdtrans2008), crs="EPSG:4258"), "POINT")
+rdtrans2008_sf <- sf::st_transform(sf::st_geometry(meuse_sf), crs="EPSG:4258", pipeline=ot_9.9.0_int[3,"definition"])
+save(molobadekas_sfc, molobadekas_sf, rdtrans2008_sfc, rdtrans2008_sf, rdtrans2018_sfc, rdtrans2018_sf, file="using_pipelines.rda")
+dbReadTable(db, "chunks")
+dbDisconnect(db)
+```
+
+```{r}
+#| label: meuse_diffs0
+#| echo: FALSE
+#| cache: false
+#| size: "scriptsize"
+#| collapse: TRUE
+t1_9.7.1_cdn <- readRDS("t1_9.7.1_cdn.rds")
+t1_9.8.0_cdn <- readRDS("t1_9.8.0_cdn.rds")
+t1_9.9.0_cdn <- readRDS("t1_9.9.0_cdn.rds")
+ot_9.7.1_int <- readRDS("ot_9.7.1_int.rds")
+ot_9.8.0_int <- readRDS("ot_9.8.0_int.rds")
+ot_9.9.0_int <- readRDS("ot_9.9.0_int.rds")
+load("using_pipelines.rda")
+```
+
+Running the command to identify candidate transformation pipelines as in Jochem Lesparre's post: `sf::sf_proj_pipelines("EPSG:28992", "EPSG:4258", Use="INTERSECTION")` on these three versions of PROJ, we find that 9.7.1 returns `{r} print(nrow(ot_9.7.1_int))` candidates, 9.8.0: `{r} print(nrow(ot_9.8.0_int))` candidates, and 9.9.0: `{r} print(nrow(ot_9.9.0_int))` candidates. So candidate counts increased as heuristics were modified to compensate for the added complexity of the epoch-based ETRS89 datum ensemble.
+
+```{r}
+#| label: meuse_diffs1
+#| echo: TRUE
+#| cache: false
+#| size: "scriptsize"
+#| collapse: TRUE
+(m_71_80 <- match(ot_9.7.1_int[,"definition"], ot_9.8.0_int[,"definition"]))
+(m_71_90 <- match(ot_9.7.1_int[,"definition"], ot_9.9.0_int[,"definition"]))
+ot_9.9.0_int[m_71_90, "accuracy"]
+```
+
+Neither of the two pipelines found for 9.7.1 were found for 9.8.0, meaning that the change to the broader ETRS89 ensemble had confused the PROJ <= 9.8.0 heuristics for finding preferred pipelines. 
+
+The two 9.7.1 pipelines were found for 9.9.0, where the first gives high accuracy, using a modern grid `rdtrans2018` available from [https://cdn.proj.org/nl_nsgi_README.txt](https://cdn.proj.org/nl_nsgi_README.txt), the PROJ CDN: 
+
+```{r}
+#| label: meuse_diffs1b
+#| echo: false
+#| cache: false
+#| size: "scriptsize"
+#| collapse: TRUE
+o <- unlist(strsplit(ot_9.9.0_int[m_71_90[1], "definition"], "\\+step"))
+cat(strwrap(c(o[1], paste("+step", o[-1])), exdent=4), sep="\n")
+```
+
+The second pipeline is a Helmert transformation. All four 9.8.0 pipelines were found for 9.9.0, but none of them were in the most accurate position (ranked 1). 
+
+The first found pipeline for 9.8.0 used an out-dated grid not available from the PROJ CDN, the second a Molobadekas transformation, the third a Helmert transformation, and the fourth only has ballpark accuracy.
+
+```{r}
+#| label: meuse_diffs1a
+#| echo: TRUE
+#| cache: false
+#| size: "scriptsize"
+#| collapse: TRUE
+(m_80_90 <- match(ot_9.8.0_int[,"definition"], ot_9.9.0_int[,"definition"]))
+```
+
+Using the classical Meuse bank soil pollution data set in the `sp` package [@R-sp], with coordinates measured in EPSG:28992 and tranforming to EPSG:4258 as in Jochem Lesparre's issue, we can track the average distances between transformations made with different versions of PROJ and the associated versions of the EPSG database. 
+
+We have 9.7.1 (under Windows, so a slightly different C math library) and 9.8.0 and 9.9.0 d258a97 (Fedora 44). 9.8.0 is about 12 cm off on average by comparison with 9.7.1 at the data location in the far south of the Netherlands. 9.9.0 has the same difference from 9.8.0. 
+
+```{r}
+#| label: meuse_diffs2
+#| echo: TRUE
+#| cache: false
+#| size: "scriptsize"
+#| collapse: TRUE
+mean(diag(sf::st_distance(t1_9.7.1_cdn, t1_9.8.0_cdn)))
+mean(diag(sf::st_distance(t1_9.8.0_cdn, t1_9.9.0_cdn)))
+```
+
+
+Using the pipeline argument in `sf::st_transform`, the modern grid pipeline `rdtrans2018` can be replicated, as can the `molobadekas` pipeline. This demonstrates that 9.8.0 uses the `molobadekas` pipeline, 9.7.1 and 9.9.0 use the `rdtrans2018` pipeline, and that 9.7.1 and 9.9.0 differ by a minimal amount between Windows and Fedora C math libraries (the pipelines involve calls to trigonometry functions).
+
+```{r}
+#| label: meuse_diffs2a
+#| echo: TRUE
+#| cache: false
+#| size: "scriptsize"
+#| collapse: TRUE
+mean(diag(sf::st_distance(molobadekas_sf, t1_9.8.0_cdn)))
+mean(diag(sf::st_distance(molobadekas_sf, rdtrans2018_sf)))
+mean(diag(sf::st_distance(t1_9.9.0_cdn, rdtrans2018_sf)))
+mean(diag(sf::st_distance(t1_9.7.1_cdn, t1_9.9.0_cdn)))
+```
+
+
+## ETRS status
+
+- So, yes, Jochem Lesparre's issue obviously would affect R spatial workflows if packages are built against PROJ 9.8.0
+
+- Luckily, the problem was detected early within PROJ, and PROJ 9.8.1 was released with EPSG v12.029, stepping back from tracking current EPSG moves
+
+- Work is continuing within PROJ to debate, test and implement improvements to heuristics for finding transformation pipelines and ordering then by accuracy
+
+- _Epoch_ and _datum ensemble_ issues are unlikely to go way, as changes in North America are forthcoming
+
+- Even Rouault on Mastodon (May 13): "Heard in a meeting: proprietary software tracks #PROJ changes to keep informed of changes in the EPSG dataset" [https://mastodon.social/\@EvenRouault/116567675016927438](https://mastodon.social/@EvenRouault/116567675016927438)
 
 
 # North America
@@ -307,7 +536,7 @@ tt(ETRS89, width=c(.2, .1, .1, .1, .1, .2), notes="GEOD: EPSG code, geocentric (
 
 - The North American Datum of 1983 (NAD83) was extended to create NAD83(CSRS) in the late 1990s as a three-dimensional reference system, and with  subsequent enhancements improved the management of higher-accuracy positioning data [@craymer:22]
 
-- [The US National Geodetic Survey](https://geodesy.noaa.gov/datums/newdatums/index.shtml) will replace NAD83 as NSRS 2022 (NATRF2022), as NAD83 has shortcomings that are best addressed through defining new datums
+- [The US National Geodetic Survey](https://geodesy.noaa.gov/datums/newdatums/index.shtml) will replace NAD83 with NSRS 2022 (NATRF2022), as NAD83 has shortcomings that are best addressed through defining new datums
 
 - This has been coming for some time, see for example @smith:10, where "up to 2 meters of error ... could cause incorrect lane determinations" (p. 7)
 
@@ -412,7 +641,7 @@ cat(NATRF2022_2D$wkt, "\n")
 
 ## Testing modernized NSRS NATRF2022 in `proj.db` {.allowframebreaks}
 
-EPSG v12.057 and earlier (including v12.029) include initial versions of "so-called" EPSG:10968 - here from v12.029: 
+EPSG v12.057 and earlier (including v12.029) include initial versions of "so-called" EPSG:10968 - here from v12.029 (not dynamic but with an epoch anchored to a matching reference frame): 
 
 ```{r}
 #| label: natrf1a
@@ -524,44 +753,28 @@ tt(dists_df) |> format_tt(output="latex", quarto=FALSE, escape="latex")
 
 # Summary
 
-
 ## Preliminary take-home points
 
 - Most legacy CRS did not take continental drift into account
 
-- The demands on CRS for accuracy and measurable errors have increased greatly, especially with the general availability of GNSS receivers
-
-- Countries/jurisdictions adopt CRS for official purposes, and often manage them differently
+- The demands on CRS for accuracy and measurable errors have increased greatly, especially with the general availability of GNSS receivers; errors at metre scale are now unacceptable, and sub-metre errors are undesirable
 
 - Global CRS have to match global crustal movement, but regional/national CRS are most often fixed to the most appropriate tectonic plate
 
-- Errors at metre scale are now unacceptable, and sub-metre errors are undesirable
+- Countries/jurisdictions adopt CRS for official purposes, and their mapping agencies often manage them differently
+
+- Fitting different mapping agency practices balancing science with practical needs into a shared database involves complex trade-offs
+
 
 ## Concluding take-home points
 
-- Adaptation to dynamic CRS will be required as public mapping agencies modernize their standards
+- Adaptation to new CRS will be required as public mapping agencies modernize their standards
 
 - There are many public mapping agencies, and their adaptations may impact users in unexpected ways - also unexpected for the agencies
 
-- BEING RE-DRAFTED following informative comments
+- The EPSG database is where much of the coordination of these adaptations has to take place, and EPSG/PROJ cooperation can provide both with useful experience of what works in practice
 
-## What is `ANCHOREPOCH`?
-
-@lott2023a, p. 57: "ANCHOREPOCH is the epoch at which a static reference frame matches a dynamic reference frame from which it has been derived. Note: Not to be confused with the frame reference epoch of dynamic geodetic and dynamic vertical reference frames. Nor with the epoch at which a reference frame is defined to be aligned with another reference frame; this information should be included in the datum anchor definition."
-
-Assignation in EPSG WKT2 seems somewhat confused, see the thread beginning 21 June at [Time dependency in ETRFxx to ETRFyy coordinate transformations?](https://lists.osgeo.org/pipermail/proj/2026-June/012125.html)
-
-PR [https://github.com/OSGeo/PROJ/pull/4792](https://github.com/OSGeo/PROJ/pull/4792) adds `proj_crs_is_dynamic` to permit tests on source and destination CRS; "The terminology around all this is FUBAR, I'm afraid" (Kristian Evers in PR)
-
-## Draft [PR 4793](https://github.com/OSGeo/PROJ/pull/4793): Do not use ITRF2020 as an intermediate for NAD83(2011) to NATRF2022
-
-- The heuristics used in PROJ to find and order transformation pipelines only sometimes match the operation sequences proposed by national mapping agencies
-
-- The comments in the [PR](https://github.com/OSGeo/PROJ/pull/4793) help understand what appears to be the decision sequence
-
-- Mapping agencies prepare prototype in-house transformation operations, but these (often) seem not to be easy to generalise as EPSG registrations
-
-- Finally, PROJ heuristics try to work around uncertainties, as end users need something that "works" to execute transformations
+- As could be seen from the NATRF2022e2020 example, EPSG registration has to feel its way forward cautiously to provide advanced access to mapping agency thinking, so caution and feedback from users such as us will also contribute
 
 ## Heads up to Python, Julia, QGIS, GRASS, etc.
 
